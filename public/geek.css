@@ -1,0 +1,48 @@
+.my-answers {
+    background-color: lightgreen;
+}
+
+.new-arrival {
+    background-color: violet;
+}
+
+td, th {
+    margin: 5px;
+    padding: 5px;
+}
+
+#feedback, th, td {
+    border: 1px solid black;
+}
+
+#feedback {
+    border-collapse: collapse;
+    background-color:rgba(255, 255, 255, 0.5);
+    border: 0px solid white;
+}
+
+#feedback-wrap {
+    background-color:rgba(255, 255, 255, 0.5);
+    display: inline-block;
+    padding: 20px;
+}
+
+body {
+    background-image: url('electronics.jpg');
+    padding: 20px;
+}
+
+h2 {
+    display: block;
+    margin: 0px 0px 10px 0px;
+    padding: 15px;
+    background-color:rgba(255, 255, 255, 0.35);
+}
+
+#feedback td {
+    font-size:  1.2em;
+}
+
+#input-toggle {
+    display: none;
+}

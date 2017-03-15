@@ -1,30 +1,12 @@
 <html>
 <head>
-	<style>
-    .my-answers {
-      background-color: lightgreen;
-    }
-    
-    .new-arrival {
-      background-color: violet;
-    }
-    
-    td, th {
-      margin: 5px;
-      padding: 5px;
-    }
 
-    table {
-      border-collapse: collapse;
-    }
-
-    table, th, td {
-      border: 1px solid black;
-    }
-    
-  </style>
+  <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
   
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="geek.css" />
+  
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
 	<script text="text/javascript">
     "use strict";
     var questionData = {};
@@ -193,15 +175,18 @@
 
 </head>
 <body>
-
-<table id="feedback">
-  <tr class="header-row">
-    <th id="title-name">Name</th>
-    <th id="title-question">Question</th>
-  </tr>
-</table>
-
-<input type="button" onclick="togglePolling()" value="Toggle Polling" />
+ 
+  <div id="feedback-wrap">
+    <h2>Meet The Geeks</h2>
+    <table id="feedback">
+      <tr class="header-row">
+        <th id="title-name">Name</th>
+        <th id="title-question">Question</th>
+      </tr>
+    </table>
+  </div>
+  
+  <input id="input-toggle" type="button" onclick="togglePolling()" value="Toggle Polling" />
 
 </body>
 </html>

@@ -56,9 +56,10 @@ app.post('/answer', function(req, res) {
 });
 
 app.post('/', function(req, res) {
-  console.log("Received initial request. data received: ", util.inspect(req.body));
-  
   var userIp = getUsableIp(req);
+
+  console.log("Received initial request.  userIp: ", userIp);
+  
   var responseData = {
     yourIp: userIp,
     allData: allData
