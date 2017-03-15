@@ -29,19 +29,35 @@
     "use strict";
     var questionData = {};
     var myIp;
-    var pollingInterval = 10000;
+    var pollingInterval = 5000;
     var isPollingActive = true;
     
     $(document).ready(function() {
-      var data = {
-        name: prompt("Hey there, what is your name?"),
-        question: prompt("If you could ask one question to everyone else in the group, what would you ask?")
-      };
   
-      $.post("/", data).done(function(receivedData) {
+      $.post("/", {}).done(function(receivedData) {
         console.log("Received initial response from server: ", receivedData);
         myIp = receivedData.yourIp;
-        setTimeout(pollForData, 500);
+        renderReceivedData(receivedData.allData);
+  
+        if (typeof receivedData.allData[myIp] === 'undefined') {
+          var data = {
+            name: prompt("Hey there!  What is your name?"),
+            question: prompt("If you could ask one question to everyone else in the group, what would you ask?")
+          };
+  
+          $.post("/newuser", data).done(function(postNewUserData) {
+            console.log("Received data from server after new user post: ", postNewUserData);
+            renderReceivedData(postNewUserData);
+  
+            //Get the polling started
+            setTimeout(pollForData, pollingInterval);
+          });
+          
+        } else {//it was a page refresh and we already have a user
+          //Get the polling started
+          setTimeout(pollForData, pollingInterval);
+        }
+        
       });
     });
     
@@ -49,17 +65,25 @@
 		  if (!isPollingActive) {
         setTimeout(pollForData, pollingInterval);
         return;
-		  }
-      console.log("polling...");
-      
+		  } else {
+        console.log("polling...");
+        loadDataNow(function() {
+          //do it again...
+          setTimeout(pollForData, pollingInterval);
+        });
+      }
+    }
+    
+    function loadDataNow(callback) {
+		  if (typeof callback !== 'function') callback = function() {};
       $.get('/data', {}).done(function(data) {
-        console.log("Received polled data: ", data);
+        console.log("Received requested server data: ", data);
         renderReceivedData(data);
-        setTimeout(pollForData, pollingInterval);
+        callback();
       });
     }
     
-    function clickQuestion(e) {
+    function clickToAnswerQuestion(e) {
 		  var $target = $(e.target);
 		  console.log("Answering question clicked eventTarget: ", $target);
 		  var $questionRow = $target.closest("tr");
@@ -72,9 +96,15 @@
         answeringToIp: questionIp,
         answer: prompt(questionName + " asks '" + questionText + "'?")
       };
-		  
-		  $.post('/answer', data).done(function() {
-		    console.log("successfully submitted answer: ", data);
+      console.log("Posting answer: ", data);
+      
+		  $.post('/answer', data).done(function(newData) {
+		    console.log("successfully submitted answer and now refreshing data");
+		    
+		    var pollState = isPollingActive;
+		    isPollingActive = false;
+		    renderReceivedData(newData);
+        isPollingActive = pollState;
       });
     }
 
@@ -106,33 +136,35 @@
           //create all of the new answer fields for the new row
           var previousAnswerIp = null;
           $.each(data, function(answerIp, answerQData) {
-            var isMyAnswer = (answerIp === myIp);
             //We go over the questions again to generate the empty answer cells for the new row
             var $newField = $('<td>', {class: "answer q-" + questionIp + " a-" + answerIp}).appendTo($newQuestionRow);
-            if (isMyAnswer) {
+            if (answerIp === myIp) {
               $newField.addClass("my-answers");
-              $newField.click(clickQuestion);
+              $newField.click(clickToAnswerQuestion);
             }
             console.log("Created new answer field in new question row");
             
             //Now the trickier thing, the other question rows don't yet have an answer column for this row
             //so find the correspoding question row to this answer and insert the new column in the right place
-            if (answerIp !== questionIp) { //!isMyAnswer &&
-              var $incompleteQuestionRow = $("tr.q-" + answerIp);
-  
-              //make sure the answer field does NOT exist
-              $incompleteQuestionRow.find(".a-" + questionIp);
-              if ($incompleteQuestionRow.length === 0) {
-                //yes, reverse the q/a roles here:
-                $newField = $('<td>', {class: "answer a-" + questionIp + " q-" + answerIp});
-                if (previousAnswerIp) {
-                  var $previousField = $incompleteQuestionRow.find("td.a-" + previousAnswerIp);
-                  $previousField.after($newField);
-                  console.log("Created new answer field in existing question row after previousAnswerIp");
-                } else {
-                  $incompleteQuestionRow.append($newField);
-                  console.log("Created new answer field in existing question row after all existing columns");
-                }
+            
+            //make sure the answer field does NOT exist
+            var $incompleteQuestionRow = $("tr.q-" + answerIp);
+            var $existingAnswerField = $incompleteQuestionRow.find(".a-" + questionIp);
+            if ($existingAnswerField.length === 0) {
+
+              //yes, reverse the q/a roles here:
+              $newField = $('<td>', {class: "answer a-" + questionIp + " q-" + answerIp});
+              if (questionIp === myIp) {
+                $newField.addClass("my-answers");
+                $newField.click(clickToAnswerQuestion);
+              }
+              if (previousAnswerIp) {
+                var $previousField = $incompleteQuestionRow.find("td.a-" + previousAnswerIp);
+                $previousField.after($newField);
+                console.log("Created new answer field in existing question row after previousAnswerIp");
+              } else {
+                $incompleteQuestionRow.append($newField);
+                console.log("Created new answer field in existing question row after all existing columns");
               }
             }
   

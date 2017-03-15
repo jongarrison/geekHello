@@ -22,7 +22,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-var questionData = {};
+var allData = {};
 
 /*
 app.get('/', function (req, res) {
@@ -33,7 +33,7 @@ app.get('/', function (req, res) {
 
 //Send the user data to each requestion client:
 app.get('/data', function(req, res) {
-  return res.status(200).json(questionData);
+  return res.status(200).json(allData);
 });
 
 app.post('/answer', function(req, res) {
@@ -41,9 +41,9 @@ app.post('/answer', function(req, res) {
   var answeringToIp = req.body.answeringToIp;
   var answer = req.body.answer;
   
-  console.log("Received answer: userIp: ", userIp, " answeringToIp: ", answeringToIp, " answer: ", answer, "\nexisting data: ", util.inspect(questionData));
+  console.log("Received answer: userIp: ", userIp, " answeringToIp: ", answeringToIp, " answer: ", answer, "\nexisting data: ", util.inspect(allData));
 
-  var answers = questionData[answeringToIp].answers;
+  var answers = allData[answeringToIp].answers;
   var existingAnswer = answers[userIp];
   
   if (typeof existingAnswer === 'undefined') {
@@ -51,33 +51,39 @@ app.post('/answer', function(req, res) {
   } else {
     console.log("Attempted double post by ip: ", userIp);
   }
+  
+  return res.status(200).json(allData);
 });
 
 app.post('/', function(req, res) {
+  console.log("Received initial request. data received: ", util.inspect(req.body));
   
-  console.log("Received initial user data: ", util.inspect(req.body));
+  var userIp = getUsableIp(req);
+  var responseData = {
+    yourIp: userIp,
+    allData: allData
+  };
   
+  return res.status(200).json(responseData);
+});
+
+app.post('/newuser', function(req, res) {
   var name = req.body.name;
   var question = req.body.question;
   var userIp = getUsableIp(req);
-
-  console.log("Received question.  name: ", name, " question: ", question, " userIp: ", userIp);
-
-  var existingQuestion = questionData[userIp];
-  if (typeof existingQuestion === 'undefined') {
   
-    questionData[userIp] = {
+  console.log("Received new user data.  name: ", name, " question: ", question, " userIp: ", userIp);
+  
+  var existingQuestion = allData[userIp];
+  if (typeof existingQuestion === 'undefined') {
+    allData[userIp] = {
       name: name,
       question: question,
       answers: {}
     }
   }
   
-  var responseData = {
-    yourIp: userIp
-  };
-  
-  return res.status(200).json(responseData);
+  return res.status(200).json(allData);
 });
 
 function getUsableIp(req) {
