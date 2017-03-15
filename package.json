@@ -1,0 +1,15 @@
+{
+  "name": "geek",
+  "version": "1.0.0",
+  "description": "Simple message repeater",
+  "main": "index.js",
+  "scripts": {
+    "test": "console.log('testing it')"
+  },
+  "dependencies": {
+    "express": "~4.0.0",
+    "body-parser": "~1.0.1"
+  },
+  "author": "jon",
+  "license": "ISC"
+}

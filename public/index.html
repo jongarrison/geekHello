@@ -1,0 +1,175 @@
+<html>
+<head>
+	<style>
+    .my-answers {
+      background-color: lightgreen;
+    }
+    
+    .new-arrival {
+      background-color: violet;
+    }
+    
+    td, th {
+      margin: 5px;
+      padding: 5px;
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+
+    table, th, td {
+      border: 1px solid black;
+    }
+    
+  </style>
+  
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+	<script text="text/javascript">
+    "use strict";
+    var questionData = {};
+    var myIp;
+    var pollingInterval = 10000;
+    var isPollingActive = true;
+    
+    $(document).ready(function() {
+      var data = {
+        name: prompt("Hey there, what is your name?"),
+        question: prompt("If you could ask one question to everyone else in the group, what would you ask?")
+      };
+  
+      $.post("/", data).done(function(receivedData) {
+        console.log("Received initial response from server: ", receivedData);
+        myIp = receivedData.yourIp;
+        setTimeout(pollForData, 500);
+      });
+    });
+    
+		function pollForData() {
+		  if (!isPollingActive) {
+        setTimeout(pollForData, pollingInterval);
+        return;
+		  }
+      console.log("polling...");
+      
+      $.get('/data', {}).done(function(data) {
+        console.log("Received polled data: ", data);
+        renderReceivedData(data);
+        setTimeout(pollForData, pollingInterval);
+      });
+    }
+    
+    function clickQuestion(e) {
+		  var $target = $(e.target);
+		  console.log("Answering question clicked eventTarget: ", $target);
+		  var $questionRow = $target.closest("tr");
+      console.log("Answering question row: ", $questionRow);
+		  var questionIp = $questionRow.attr('data-question-ip');
+		  var questionName = $questionRow.find('.name').html();
+      var questionText = $questionRow.find('.question').html();
+		  
+		  var data = {
+        answeringToIp: questionIp,
+        answer: prompt(questionName + " asks '" + questionText + "'?")
+      };
+		  
+		  $.post('/answer', data).done(function() {
+		    console.log("successfully submitted answer: ", data);
+      });
+    }
+
+    function renderReceivedData(data) {
+      console.log("Rendering received data: ", data);
+
+      //clear the old new-arrivals
+      $(".new-arrival").removeClass("new-arrival");
+      
+		  $.each(data, function(questionIp, questionData) {
+		    console.log("considering poll data row for questionIp: ", questionIp);
+		    
+		    var $existingQuestionRow = $("tr.q-" + questionIp);
+		    console.log("Found existing question row: ", $existingQuestionRow);
+
+		    if ($existingQuestionRow.length === 0) {
+		      console.log("Creating new question row for ip: ", questionIp);
+		      var $newQuestionRow = $('<tr>', {class: "new-arrival q-" + questionIp, 'data-question-ip': questionIp}).appendTo($("table#feedback"));
+      
+          var name = questionData.name;
+          $('<td>', {class: "name q-" + questionIp}).appendTo($newQuestionRow).html(name);
+          console.log("Created name field for: ", name);
+          var question = questionData.question;
+          $('<td>', {class: "question q-" + questionIp}).appendTo($newQuestionRow).html(question);
+          console.log("Created question field with: ", question);
+          $("tr.header-row").append($("<th>", {class: "new-arrival"}).html(name));
+          console.log("Created the new answer column header with the new name");
+          
+          //create all of the new answer fields for the new row
+          var previousAnswerIp = null;
+          $.each(data, function(answerIp, answerQData) {
+            var isMyAnswer = (answerIp === myIp);
+            //We go over the questions again to generate the empty answer cells for the new row
+            var $newField = $('<td>', {class: "answer q-" + questionIp + " a-" + answerIp}).appendTo($newQuestionRow);
+            if (isMyAnswer) {
+              $newField.addClass("my-answers");
+              $newField.click(clickQuestion);
+            }
+            console.log("Created new answer field in new question row");
+            
+            //Now the trickier thing, the other question rows don't yet have an answer column for this row
+            //so find the correspoding question row to this answer and insert the new column in the right place
+            if (answerIp !== questionIp) { //!isMyAnswer &&
+              var $incompleteQuestionRow = $("tr.q-" + answerIp);
+  
+              //make sure the answer field does NOT exist
+              $incompleteQuestionRow.find(".a-" + questionIp);
+              if ($incompleteQuestionRow.length === 0) {
+                //yes, reverse the q/a roles here:
+                $newField = $('<td>', {class: "answer a-" + questionIp + " q-" + answerIp});
+                if (previousAnswerIp) {
+                  var $previousField = $incompleteQuestionRow.find("td.a-" + previousAnswerIp);
+                  $previousField.after($newField);
+                  console.log("Created new answer field in existing question row after previousAnswerIp");
+                } else {
+                  $incompleteQuestionRow.append($newField);
+                  console.log("Created new answer field in existing question row after all existing columns");
+                }
+              }
+            }
+  
+            previousAnswerIp = answerIp; //this is important for knowing placement in the column order;
+          });
+        } //end if new row
+      
+        $existingQuestionRow = $("tr.q-" + questionIp); //whether it existed before or not, it exists now
+        $.each(questionData.answers, function(answerIp, answerText) {
+          var $answerField = $existingQuestionRow.find("td.a-" + answerIp);
+          if (!$answerField.is(".filled")) {
+            $answerField.html(answerText);
+            $answerField.addClass("filled");
+            $answerField.addClass("new-arrival");
+          }
+        });
+      
+      });
+		  
+    } //renderReceivedData
+    
+    function togglePolling() {
+		  isPollingActive = !isPollingActive;
+    }
+	</script>
+
+</head>
+<body>
+
+<table id="feedback">
+  <tr class="header-row">
+    <th id="title-name">Name</th>
+    <th id="title-question">Question</th>
+  </tr>
+</table>
+
+<input type="button" onclick="togglePolling()" value="Toggle Polling" />
+
+</body>
+</html>
